@@ -28,16 +28,14 @@ def read_data(folder_path):
     return frame_file, gaze_data
 
 
-def get_box_color(frame_file, gaze_data):
-    start_time = time.time()
-    img_full = cv2.imread(frame_file)
+def crop_image(img_full):
     height, width, channels = img_full.shape 
     # Crop is [y1:y2, x1:x2]
     img_crop = img_full[int(height*.25):height, int(width*.25):int(width*.75)]
+    return img_crop
 
-    # Transform into CIELab colorspace
-    img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
 
+def convert_to_binary_image(img_trans):
     Z = img_trans.reshape((-1,3))
     Z = np.float32(Z) # convert to np.float32
     # Define criteria, number of clusters(K) and apply kmeans()
@@ -53,14 +51,10 @@ def get_box_color(frame_file, gaze_data):
     res = center[label.flatten()]
     res2 = res.reshape((img_trans.shape))
     res3 = cv2.cvtColor(res2,cv2.COLOR_BGR2GRAY)
+    return res3
 
-    kernel = np.ones((5,5),np.uint8)
-    res3 = cv2.morphologyEx(res3, cv2.MORPH_OPEN, kernel) 
-#    res4 = copy.copy(res3)
-#    cv2.imshow('denoise', res4)
 
-#    edges = cv2.Canny(res3, 200, 200)
-
+def find_bounding_box(res3, img_crop):
     res3, contours, hierarcy = cv2.findContours(res3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     max_area = 0
@@ -103,14 +97,42 @@ def get_box_color(frame_file, gaze_data):
     cropped = cv2.warpAffine(cropped, M, size)
     croppedW = min(width, height)
     croppedH = max(width, height)
+
+    cv2.drawContours(img_crop,[box],0,(0,0,255),2)
+    cv2.imshow('box', img_crop)
     
     # Final cropped & rotated rectangle
     img_lightbox_crop = cv2.getRectSubPix(cropped, (int(croppedW),int(croppedH)), (size[0]/2, size[1]/2))
     cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
-    cv2.drawContours(img_crop,[box],0,(0,0,255),2)
+    return img_lightbox_crop
+    
+
+def find_bounding_box_simple(res3, img_crop):
+    res3, contours, hierarcy = cv2.findContours(res3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    max_area = 0
+    max_dim = []
+    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
+    for cnt in contours:
+        x,y,w,h = cv2.boundingRect(cnt)
+
+        # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
+        if ((float(h)/w) < (switch_aspect_ratio * 1.12) and ((float(h)/w) > (switch_aspect_ratio * 0.82))):
+            if w*h > max_area:
+                max_area = w*h
+                max_dim = [x, y, w, h]
+
+    x, y, w, h = max_dim
+    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
 
+    img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
+    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
+
+    return img_lightbox_crop
+
+def get_color(img_lightbox_crop):
     average_row_color = np.mean(img_lightbox_crop, axis=0) # Take average across one dimension of 2D image
     average_color = np.mean(average_row_color, axis=0) # Take average along second dimension, returning final true color avg
     average_color = np.uint8(average_color) # Convert to whole RGB values
@@ -122,6 +144,26 @@ def get_box_color(frame_file, gaze_data):
 
     main_color = color_classification[np.argmax(average_color, axis=0)] # Index of max BGR color determines color
     print("Lightbox detected with color {0}!\n".format(main_color))
+    return main_color
+
+
+def get_box_color(frame_file, gaze_data):
+    start_time = time.time()
+    img_full = cv2.imread(frame_file)
+
+    img_crop = crop_image(img_full)
+
+    # Transform into CIELab colorspace
+    img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
+
+    res3 = convert_to_binary_image(img_trans)
+
+    kernel = np.ones((5,5),np.uint8)
+    res3 = cv2.morphologyEx(res3, cv2.MORPH_OPEN, kernel)
+
+    img_lightbox_crop = find_bounding_box(res3, img_crop)
+
+    main_color = get_color(img_lightbox_crop)
 
     time_taken = time.time() - start_time
     print(time_taken)
