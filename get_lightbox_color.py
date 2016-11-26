@@ -6,9 +6,7 @@ import os
 import csv
 import math
 
-#TODO: CLEAN!
 #TODO: Add gaze crop
-#TODO: Offset rectange for bounding box
 #TODO: Choose bounding box not just by area but nearness to gaze
 
 def read_data(folder_path):
@@ -49,14 +47,14 @@ def convert_to_binary_image(img_trans):
 
     # Now convert back into uint8, and make original image
     center = np.uint8(center)
-    res = center[label.flatten()]
-    res2 = res.reshape((img_trans.shape))
-    res3 = cv2.cvtColor(res2,cv2.COLOR_BGR2GRAY)
-    return res3
+    img_bw = center[label.flatten()]
+    img_bw_rect = img_bw.reshape((img_trans.shape))
+    img_binary = cv2.cvtColor(img_bw_rect,cv2.COLOR_BGR2GRAY)
+    return img_binary
 
 
-def find_bounding_box(res3, img_crop):
-    res3, contours, hierarcy = cv2.findContours(res3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def find_bounding_box(img_binary, img_crop):
+    img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     max_area = 0
     max_dim = []
@@ -71,7 +69,6 @@ def find_bounding_box(res3, img_crop):
             if w*h > max_area:
                 max_area = w*h
                 max_rect = rect
-
 
     box = cv2.boxPoints(max_rect)
     box = np.int0(box)
@@ -109,8 +106,8 @@ def find_bounding_box(res3, img_crop):
     return img_lightbox_crop
     
 
-def find_bounding_box_simple(res3, img_crop):
-    res3, contours, hierarcy = cv2.findContours(res3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def find_bounding_box_simple(img_binary, img_crop):
+    img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     max_area = 0
     max_dim = []
@@ -157,12 +154,12 @@ def get_box_color(frame_file, gaze_data):
     # Transform into CIELab colorspace
     img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
 
-    res3 = convert_to_binary_image(img_trans)
+    img_binary = convert_to_binary_image(img_trans)
 
     kernel = np.ones((5,5),np.uint8)
-    res3 = cv2.morphologyEx(res3, cv2.MORPH_OPEN, kernel)
+    img_binary = cv2.morphologyEx(img_binary, cv2.MORPH_OPEN, kernel)
 
-    img_lightbox_crop = find_bounding_box(res3, img_crop)
+    img_lightbox_crop = find_bounding_box(img_binary, img_crop)
 
     main_color = get_color(img_lightbox_crop)
 
