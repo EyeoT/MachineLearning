@@ -4,7 +4,6 @@ import copy
 import time
 import os
 import csv
-import math
 
 #TODO: Add gaze crop
 #TODO: Choose bounding box not just by area but nearness to gaze
@@ -41,9 +40,14 @@ def convert_to_binary_image(img_trans):
     criteria = (cv2.TERM_CRITERIA_EPS, 10, 1.0)
     K = 2
     ret,label,center=cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_PP_CENTERS)
-    # Convert colors to binary
-    center[0] = [0,0,0]
-    center[1] = [255,255,255]
+
+    #Find larger label and color it black
+    if np.count_nonzero(label) > len(label)/2:
+        center[1] = [0,0,0]
+        center[0] = [255,255,255]
+    else:
+        center[0] = [0,0,0]
+        center[1] = [255,255,255]
 
     # Now convert back into uint8, and make original image
     center = np.uint8(center)
