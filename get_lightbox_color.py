@@ -26,10 +26,39 @@ def read_data(folder_path):
     return frame_file, gaze_data, avg_gaze_pos
 
 
-def crop_image(img_full):
-    height, width, channels = img_full.shape 
+def crop_image(img_full, gaze_data):
+    height, width, channels = img_full.shape
+    crop_to_x = .25  # Crop to a fourth of the image
+    crop_to_y = .5
+    try:
+        x_gaze, y_gaze = gaze_data
+    except:
+        x_gaze = .5
+        y_gaze = .5
+
+    x1 = x_gaze - crop_to_x / 2
+    x2 = x_gaze + crop_to_x / 2
+    if x1 < 0:
+        x1 = 0
+        x2 = crop_to_x
+    elif x2 > 1:
+        x1 = 1 - crop_to_x
+        x2 = 1
+
+    y1 = y_gaze - crop_to_y / 2
+    y2 = y_gaze + crop_to_y / 2
+    if y1 < 0:
+        y1 = 0
+        y2 = crop_to_y
+    elif y2 > 1:
+        y1 = 1 - crop_to_y
+        y2 = 1
+
+    y1 = 1 - y1
+    y2 = 1 - y2
     # Crop is [y1:y2, x1:x2]
-    img_crop = img_full[int(height*.25):height, int(width*.25):int(width*.75)]
+    img_crop = img_full[int(height * y2):int(height * y1),
+                        int(width * x1):int(width * x2)]
     return img_crop
 
 
