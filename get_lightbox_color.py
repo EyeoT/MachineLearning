@@ -9,21 +9,17 @@ import csv
 #TODO: Choose bounding box not just by area but nearness to gaze
 
 def read_data(folder_path):
-    csv_file_name = 'all_gaze_data.csv'
+    csv_file_name = 'gaze_frame_data.csv'
     csv_file = open(os.path.join(folder_path, csv_file_name), 'r')
     reader = csv.DictReader(csv_file)
-    gaze_data = []
-    frame_file = ''
+    frame_sets = []
     for row in reader:
-        if frame_file is not '':
-            if row['frame_file'] != frame_file:
-                break
-        else:
-            frame_file = row['frame_file']
-        gaze_point = [float(row['x_norm_pos']), float(row['y_norm_pos'])]
-        gaze_data.append(gaze_point)
-    avg_gaze_pos = np.mean(gaze_data, axis=0)  # Take average of image's gaze position
-    return frame_file, gaze_data, avg_gaze_pos
+        frame_set = {}
+        frame_set['frame'] = row['frame_file']
+        frame_set['gaze_data'] = [
+            float(row['x_norm_pos']), float(row['y_norm_pos'])]
+        frame_sets.append(frame_set)
+    return frame_sets
 
 
 def crop_image(img_full, gaze_data):
