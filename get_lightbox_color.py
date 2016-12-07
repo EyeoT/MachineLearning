@@ -8,6 +8,12 @@ import csv
 #TODO: Add gaze crop
 #TODO: Choose bounding box not just by area but nearness to gaze
 
+class NoBoxError(Exception):
+
+    def __init__(self):
+        pass
+
+
 def read_data(folder_path):
     csv_file_name = 'gaze_frame_data.csv'
     csv_file = open(os.path.join(folder_path, csv_file_name), 'r')
@@ -99,6 +105,9 @@ def find_bounding_box(img_binary, img_crop):
                 max_area = w*h
                 max_rect = rect
 
+    if not max_rect:
+        raise NoBoxError
+
     box = cv2.boxPoints(max_rect)
     box = np.int0(box)
 
@@ -150,6 +159,9 @@ def find_bounding_box_simple(img_binary, img_crop):
                 max_area = w*h
                 max_dim = [x, y, w, h]
 
+    if not max_dim:
+        raise NoBoxError
+
     x, y, w, h = max_dim
     cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
@@ -188,7 +200,12 @@ def get_box_color(frame_file, gaze_data):
     kernel = np.ones((5,5),np.uint8)
     img_binary = cv2.morphologyEx(img_binary, cv2.MORPH_OPEN, kernel)
 
-    img_lightbox_crop = find_bounding_box(img_binary, img_crop)
+    try:
+        img_lightbox_crop = find_bounding_box(img_binary, img_crop)
+    except NoBoxError:
+        print('no box found')
+        cv2.waitKey(0)
+        return None
 
     main_color = get_color(img_lightbox_crop)
 
