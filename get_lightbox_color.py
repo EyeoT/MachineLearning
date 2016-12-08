@@ -61,10 +61,6 @@ def crop_image(img_full, gaze_data):
     # Crop is [y1:y2, x1:x2]
     img_crop = img_full[int(height * y2):int(height * y1),
                         int(width * x1):int(width * x2)]
-    cropped_img_name = frame_file.split('/')[-1].split(".")[0] + "_test.jpg"
-    data_dir = "with_aspect_ratio"
-    cropped_img_path = os.path.join(data_dir, cropped_img_name)
-    cv2.imwrite(cropped_img_path, img_crop)
     return img_crop
 
 
