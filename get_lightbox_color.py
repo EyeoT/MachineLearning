@@ -217,8 +217,7 @@ def get_color(img_lightbox_crop):
 
 def get_box_color(img_full, gaze_data):
     start_time = time.time()
-    # ipdb.set_trace()
-    img_full = cv2.imread(frame_file)
+    #img_full = cv2.imread(frame_file)
 
     # img_crop = crop_image(img_full, gaze_data)
     img_crop = img_full
