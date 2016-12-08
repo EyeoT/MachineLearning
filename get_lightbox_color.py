@@ -160,27 +160,30 @@ def find_bounding_box_simple(img_binary, img_crop):
     img_height, img_width, img_col = img_crop.shape
     max_area = 0
     max_dim = []
-    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
+    switch_aspect_ratio = float(119)/75 # Aspect ratio of the light switch
+    img_width_bound_high = img_width * 0.99
+    img_width_bound_low = img_width * 0.01
+    img_height_bound_high = img_height * 0.99
+    img_height_bound_low = img_height * 0.01
     for cnt in contours:
-        x,y,w,h = cv2.boundingRect(cnt)
+        x, y, w, h = cv2.boundingRect(cnt)
 
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
-        if ((float(h)/w) < (switch_aspect_ratio * 1.33) and ((float(h)/w) > (switch_aspect_ratio * 0.77))):
-            if (h > img_height * 0.05): #and (h < img_height *.55):
-                if (x > 5) and (y > 5) and (x+w < img_width - 5) and (y+h < img_height - 5):
-                    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
-                    print('{0} {1} {2} {3}'.format(x, y, w, h))
+        if (float(h)/w) < (switch_aspect_ratio * 1.68) and ((float(h)/w) > (switch_aspect_ratio * 0.77)):
+            if (h > img_height * 0.05) and (h < img_height * 0.30):
+                if (x > img_width_bound_low) and (y > img_height_bound_low) \
+                        and (x+w < img_width_bound_high)  and (y+h < img_height_bound_high):
+                    cv2.rectangle(img_crop, (x, y), (x+w, y+h), (255, 0, 255), 2)
+                    # print('{0} {1} {2} {3}'.format(x, y, w, h))
                     if w*h > max_area:
                         max_area = w*h
                         max_dim = [x, y, w, h]
-
     if not max_dim:
         raise NoBoxError
 
     x, y, w, h = max_dim
 #    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
-
     img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
 #    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
@@ -194,10 +197,12 @@ def get_color(img_lightbox_crop):
     average_color_swatch = np.array([[average_color]*100]*100, np.uint8) # Make a color swatch
 #    cv2.imshow('color swatch', average_color_swatch) # And display it for debugging
 
-    color_classification = {0 : 'blue', 1 : 'green', 2 : 'red'} # BGR ordering due to OpenCV
-
-    main_color = color_classification[np.argmax(average_color, axis=0)] # Index of max BGR color determines color
-    print("Lightbox detected with color {0}!\n".format(main_color))
+    color_classification = {0: 'blue', 1: 'green', 2: 'red', 3: 'cream'} # BGR ordering due to OpenCV
+    if (average_color[1] <= average_color[2]*1.1) and (average_color[1] >= average_color[2]*0.9):
+        main_color = color_classification[3]
+    else:
+        main_color = color_classification[np.argmax(average_color, axis=0)] # Index of max BGR color determines color
+    print("Lightbox guess: {0}, BGR: {1} ".format(main_color, average_color))
     return main_color
 
 
@@ -227,7 +232,7 @@ def get_box_color(img_full, gaze_data):
     main_color = get_color(img_lightbox_crop)
 
     time_taken = time.time() - start_time
-    print(time_taken)
+    # print(time_taken)
 
     cv2.waitKey(0)
     return main_color
