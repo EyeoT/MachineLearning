@@ -144,11 +144,10 @@ def find_bounding_box_simple(img_binary, img_crop):
         x,y,w,h = cv2.boundingRect(cnt)
 
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
-        if ((float(h)/w) < (switch_aspect_ratio * 1.33) and ((float(h)/w) > (switch_aspect_ratio * 0.77))):
+        if ((float(h)/w) < (switch_aspect_ratio * 1.68) and ((float(h)/w) > (switch_aspect_ratio * 0.77))):
             if (h > img_height * 0.05): #and (h < img_height *.55):
                 if (x > 5) and (y > 5) and (x+w < img_width - 5) and (y+h < img_height - 5):
                     cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
-                    print('{0} {1} {2} {3}'.format(x, y, w, h))
                     if w*h > max_area:
                         max_area = w*h
                         max_dim = [x, y, w, h]
