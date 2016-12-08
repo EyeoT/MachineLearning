@@ -4,6 +4,7 @@ import copy
 import time
 import os
 import csv
+import ipdb
 
 #TODO: Add gaze crop
 #TODO: Choose bounding box not just by area but nearness to gaze
@@ -21,14 +22,15 @@ def read_data(folder_path):
     frame_sets = []
     for row in reader:
         frame_set = {}
-        frame_set['frame'] = row['frame_file']
+        frame_set['frame'] = os.path.join(folder_path,row['frame_file'])
         frame_set['gaze_data'] = [
             float(row['x_norm_pos']), float(row['y_norm_pos'])]
         frame_sets.append(frame_set)
     return frame_sets
 
-
-def crop_image(img_full, gaze_data):
+#TODO if the bounding box exceeds the fail
+def crop_image(frame_file, img_full, gaze_data):
+    switch_aspect_ratio = float(13.1)/float(8.5) # Aspect ratio of the lightswitch
     height, width, channels = img_full.shape
     crop_to_x = .25  # Crop to a fourth of the image
     crop_to_y = .5
@@ -61,6 +63,10 @@ def crop_image(img_full, gaze_data):
     # Crop is [y1:y2, x1:x2]
     img_crop = img_full[int(height * y2):int(height * y1),
                         int(width * x1):int(width * x2)]
+    cropped_img_name = frame_file.split('/')[-1].split(".")[0] + "_test.jpg"
+    data_dir = "with_aspect_ratio"
+    cropped_img_path = os.path.join(data_dir, cropped_img_name)
+    cv2.imwrite(cropped_img_path, img_crop)
     return img_crop
 
 
@@ -93,7 +99,7 @@ def find_bounding_box(img_binary, img_crop):
 
     max_area = 0
     max_dim = []
-    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
+    switch_aspect_ratio = float(13.1)/float(8.5) # Aspect ratio of the lightswitch
     for cnt in contours:
         rect = cv2.minAreaRect(cnt)
 
@@ -190,7 +196,8 @@ def get_box_color(frame_file, gaze_data):
     start_time = time.time()
     img_full = cv2.imread(frame_file)
 
-    img_crop = crop_image(img_full)
+    #TODO remove frame file
+    img_crop = crop_image(frame_file, img_full, gaze_data)
 
     # Transform into CIELab colorspace
     img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
@@ -217,5 +224,7 @@ def get_box_color(frame_file, gaze_data):
 
 
 if __name__ == '__main__':
-    frame_file, gaze_data, avg_gaze_pos = read_data('')
-    get_box_color(frame_file, gaze_data)
+    data = read_data('./1480891077.72')
+    for datum in data:
+        img_full = cv2.imread(datum['frame'])
+        crop_image(datum['frame'], img_full, datum['gaze_data'])
