@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import copy
 import time
 import os
 import csv
@@ -15,6 +14,7 @@ class NoBoxError(Exception):
         pass
 
 
+<<<<<<< HEAD
 def read_data(folder_path):
     csv_file_name = 'gaze_frame_data.csv'
     csv_file = open(os.path.join(folder_path, csv_file_name), 'r')
@@ -29,8 +29,7 @@ def read_data(folder_path):
     return frame_sets
 
 #TODO if the bounding box exceeds the fail
-def crop_image(frame_file, img_full, gaze_data):
-    switch_aspect_ratio = float(13.1)/float(8.5) # Aspect ratio of the lightswitch
+def crop_image(img_full, gaze_data):
     height, width, channels = img_full.shape
     crop_to_x = .25  # Crop to a fourth of the image
     crop_to_y = .5
@@ -99,7 +98,8 @@ def find_bounding_box(img_binary, img_crop):
 
     max_area = 0
     max_dim = []
-    switch_aspect_ratio = float(13.1)/float(8.5) # Aspect ratio of the lightswitch
+    max_rect = None
+    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
     for cnt in contours:
         rect = cv2.minAreaRect(cnt)
 
@@ -141,11 +141,11 @@ def find_bounding_box(img_binary, img_crop):
     croppedH = max(width, height)
 
     cv2.drawContours(img_crop,[box],0,(0,0,255),2)
-    cv2.imshow('box', img_crop)
+#    cv2.imshow('box', img_crop)
     
     # Final cropped & rotated rectangle
     img_lightbox_crop = cv2.getRectSubPix(cropped, (int(croppedW),int(croppedH)), (size[0]/2, size[1]/2))
-    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
+#    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
     return img_lightbox_crop
     
@@ -170,10 +170,10 @@ def find_bounding_box_simple(img_binary, img_crop):
 
     x, y, w, h = max_dim
     cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
-    cv2.imshow('box', img_crop)
+#    cv2.imshow('box', img_crop)
 
     img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
-    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
+#    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
     return img_lightbox_crop
 
@@ -183,7 +183,7 @@ def get_color(img_lightbox_crop):
     average_color = np.uint8(average_color) # Convert to whole RGB values
 
     average_color_swatch = np.array([[average_color]*100]*100, np.uint8) # Make a color swatch
-    cv2.imshow('color swatch', average_color_swatch) # And display it for debugging
+#    cv2.imshow('color swatch', average_color_swatch) # And display it for debugging
 
     color_classification = {0 : 'blue', 1 : 'green', 2 : 'red'} # BGR ordering due to OpenCV
 
@@ -192,12 +192,11 @@ def get_color(img_lightbox_crop):
     return main_color
 
 
-def get_box_color(frame_file, gaze_data):
+def get_box_color(img_full, gaze_data):
     start_time = time.time()
-    img_full = cv2.imread(frame_file)
+    # img_full = cv2.imread(frame_file)
 
-    #TODO remove frame file
-    img_crop = crop_image(frame_file, img_full, gaze_data)
+    img_crop = crop_image(img_full, gaze_data)
 
     # Transform into CIELab colorspace
     img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
@@ -211,7 +210,7 @@ def get_box_color(frame_file, gaze_data):
         img_lightbox_crop = find_bounding_box(img_binary, img_crop)
     except NoBoxError:
         print('no box found')
-        cv2.waitKey(0)
+#        cv2.waitKey(0)
         return None
 
     main_color = get_color(img_lightbox_crop)
@@ -219,7 +218,7 @@ def get_box_color(frame_file, gaze_data):
     time_taken = time.time() - start_time
     print(time_taken)
 
-    cv2.waitKey(0)
+#    cv2.waitKey(0)
     return main_color
 
 
