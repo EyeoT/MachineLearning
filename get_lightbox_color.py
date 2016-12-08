@@ -249,6 +249,5 @@ def get_box_color(frame_file, gaze_data):
 
 
 if __name__ == '__main__':
-    data = read_data('test_data')
-    for datum in data:
-        get_box_color(datum['frame'], datum['gaze_data'])
+    frame_file, gaze_data, avg_gaze_pos = read_data('')
+    get_box_color(frame_file, gaze_data)
