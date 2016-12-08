@@ -14,19 +14,6 @@ class NoBoxError(Exception):
         pass
 
 
-def read_data(folder_path):
-    csv_file_name = 'gaze_frame_data.csv'
-    csv_file = open(os.path.join(folder_path, csv_file_name), 'r')
-    reader = csv.DictReader(csv_file)
-    frame_sets = []
-    for row in reader:
-        frame_set = {}
-        frame_set['frame'] = os.path.join(folder_path,row['frame_file'])
-        frame_set['gaze_data'] = [
-            float(row['x_norm_pos']), float(row['y_norm_pos'])]
-        frame_sets.append(frame_set)
-    return frame_sets
-
 #TODO if the bounding box exceeds the fail
 def crop_image(img_full, gaze_data):
     height, width, channels = img_full.shape
