@@ -106,11 +106,15 @@ def find_bounding_box(img_binary, img_crop):
         w = min(rect[1])
         h = max(rect[1])
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
-        if ( (h/w) < (switch_aspect_ratio * 1.12) and ((h/w) > (switch_aspect_ratio * 0.82))):
+        if ( (h/w) < (switch_aspect_ratio * 1.27) and ((h/w) > (switch_aspect_ratio * 0.82))):
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(img_crop,[box],0,(0,0,255),2)
             if w*h > max_area:
                 max_area = w*h
                 max_rect = rect
 
+    cv2.imshow('boxes', img_crop)
     if not max_rect:
         raise NoBoxError
 
@@ -152,7 +156,8 @@ def find_bounding_box(img_binary, img_crop):
 
 def find_bounding_box_simple(img_binary, img_crop):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+    
+    img_height, img_width, img_col = img_crop.shape
     max_area = 0
     max_dim = []
     switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
@@ -160,17 +165,21 @@ def find_bounding_box_simple(img_binary, img_crop):
         x,y,w,h = cv2.boundingRect(cnt)
 
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
-        if ((float(h)/w) < (switch_aspect_ratio * 1.12) and ((float(h)/w) > (switch_aspect_ratio * 0.82))):
-            if w*h > max_area:
-                max_area = w*h
-                max_dim = [x, y, w, h]
+        if ((float(h)/w) < (switch_aspect_ratio * 1.33) and ((float(h)/w) > (switch_aspect_ratio * 0.77))):
+            if (h > img_height * 0.05): #and (h < img_height *.55):
+                if (x > 5) and (y > 5) and (x+w < img_width - 5) and (y+h < img_height - 5):
+                    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+                    print('{0} {1} {2} {3}'.format(x, y, w, h))
+                    if w*h > max_area:
+                        max_area = w*h
+                        max_dim = [x, y, w, h]
 
     if not max_dim:
         raise NoBoxError
 
     x, y, w, h = max_dim
-    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
-#    cv2.imshow('box', img_crop)
+#    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+    cv2.imshow('box', img_crop)
 
     img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
 #    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
@@ -196,7 +205,8 @@ def get_box_color(img_full, gaze_data):
     start_time = time.time()
     # img_full = cv2.imread(frame_file)
 
-    img_crop = crop_image(img_full, gaze_data)
+    # img_crop = crop_image(img_full, gaze_data)
+    img_crop = img_full
 
     # Transform into CIELab colorspace
     img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
@@ -205,9 +215,10 @@ def get_box_color(img_full, gaze_data):
 
     kernel = np.ones((5,5),np.uint8)
     img_binary = cv2.morphologyEx(img_binary, cv2.MORPH_OPEN, kernel)
+    cv2.imshow('binary', img_binary)
 
     try:
-        img_lightbox_crop = find_bounding_box(img_binary, img_crop)
+        img_lightbox_crop = find_bounding_box_simple(img_binary, img_crop)
     except NoBoxError:
         print('no box found')
 #        cv2.waitKey(0)
@@ -218,7 +229,7 @@ def get_box_color(img_full, gaze_data):
     time_taken = time.time() - start_time
     print(time_taken)
 
-#    cv2.waitKey(0)
+    cv2.waitKey(0)
     return main_color
 
 
