@@ -25,6 +25,7 @@ if __name__ == '__main__':
     folder_path = 'test_data'
     frame_sets = read_data(folder_path)
     num_accurate = 0
+    iterator = 0
     for frame_set in frame_sets:
         img = cv2.imread(os.path.join(folder_path, frame_set['frame']))
         gaze_center_x, gaze_center_y = frame_set['gaze_data']
@@ -34,4 +35,6 @@ if __name__ == '__main__':
         color = get_lightbox_color.get_box_color(img, frame_set['gaze_data'])
         if color == frame_set['true_color']:
             num_accurate += 1
+        print("True color: {0} for image # {1}\n".format(frame_set['true_color'], iterator))
+        iterator += 1
     print num_accurate
