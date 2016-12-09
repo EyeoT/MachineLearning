@@ -3,7 +3,6 @@ import cv2
 import time
 import os
 import csv
-import ipdb
 
 #TODO: Add gaze crop
 #TODO: Choose bounding box not just by area but nearness to gaze
@@ -136,18 +135,21 @@ def find_bounding_box(img_binary, img_crop):
     return img_lightbox_crop
     
 
-def euclidean_distance(gaze_data, x, y, w, h):
-    x_centroid = x + w / 2.0
-    y_centroid = y + h / 2.0
-    distance = np.sqrt((x_centroid - gaze_data[0])**2 + (y_centroid - gaze_data[1])**2)
+def euclidean_distance(gaze_data, img_width, img_height, x, y, w, h):
+    x_centroid = x + (w / 2.0)
+    y_centroid = y + (h / 2.0)
+    gaze_mapped_x = gaze_data[0] * img_width
+    gaze_mapped_y = (1 - gaze_data[1]) * img_height
+    distance = np.sqrt((x_centroid - gaze_mapped_x)**2 + (y_centroid - gaze_mapped_y)**2)
     return distance
+
 
 def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_height, img_width, img_col = img_crop.shape
     max_area = 0
-    min_distance = 2000 # Minimum distance threshold
+    min_distance = 200 # Minimum distance threshold
     max_dim = []
     switch_aspect_ratio = float(119)/75 # Aspect ratio of the light switch
     img_width_bound_high = img_width * 0.99
@@ -161,20 +163,20 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
 
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
         if (float(h)/w) < (switch_aspect_ratio * 1.68) and ((float(h)/w) > (switch_aspect_ratio * 0.77)):
-            if (h > img_height * 0.05) and (h < img_height * 0.30):
+            if (h > img_height * 0.07) and (h < img_height * 0.30):
                 if (x > img_width_bound_low) and (y > img_height_bound_low) \
                     and (x+w < img_width_bound_high)  and (y+h < img_height_bound_high):
-                    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
-                    print('{0} {1} {2} {3}'.format(x, y, w, h))
-                    distance = euclidean_distance(gaze_data, x, y, w, h)
+#                    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+#                    print('{0} {1} {2} {3}'.format(x, y, w, h))
+                    distance = euclidean_distance(gaze_data, img_width, img_height, x, y, w, h)
                     if distance < min_distance:
-                        distance = min_distance
+                        min_distance = distance
                         max_dim = [x, y, w, h]
     if not max_dim:
         raise NoBoxError
 
     x, y, w, h = max_dim
-#    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
     img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
 #    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
