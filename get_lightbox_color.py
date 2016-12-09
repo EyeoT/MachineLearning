@@ -6,7 +6,7 @@ import csv
 
 #TODO: Add gaze crop
 #TODO: Choose bounding box not just by area but nearness to gaze
-
+kernel = np.ones((5, 5), np.uint8)  # constant
 class NoBoxError(Exception):
 
     def __init__(self):
@@ -49,13 +49,12 @@ def crop_image(img_full, gaze_data):
     return img_crop
 
 
-def convert_to_binary_image(img_trans):
-    Z = img_trans.reshape((-1,3))
-    Z = np.float32(Z) # convert to np.float32
+def convert_to_binary_image(img_trans, K):
+    Z = img_trans.reshape((-1, 3))
+    Z = np.float32(Z)  # convert to np.float32
     # Define criteria, number of clusters(K) and apply kmeans()
     criteria = (cv2.TERM_CRITERIA_EPS, 10, 1.0)
-    K = 2
-    ret,label,center=cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_PP_CENTERS)
+    ret, label, center = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
 
     #Find larger label and color it black
     if np.count_nonzero(label) > len(label)/2:
@@ -69,7 +68,8 @@ def convert_to_binary_image(img_trans):
     center = np.uint8(center)
     img_bw = center[label.flatten()]
     img_bw_rect = img_bw.reshape((img_trans.shape))
-    img_binary = cv2.cvtColor(img_bw_rect,cv2.COLOR_BGR2GRAY)
+    img_binary = cv2.cvtColor(img_bw_rect, cv2.COLOR_BGR2GRAY)
+
     return img_binary
 
 
@@ -78,7 +78,7 @@ def find_bounding_box(img_binary, img_crop):
 
     max_area = 0
     max_rect = None
-    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
+    switch_aspect_ratio = float(119)/75  # Aspect ratio of the lightswitch
     for cnt in contours:
         rect = cv2.minAreaRect(cnt)
 
@@ -163,13 +163,18 @@ def find_bounding_box_simple(img_binary, img_crop):
     x, y, w, h = max_dim
 #    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
-    img_lightbox_crop = img_crop[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
-#    cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
+    #img_lightbox_crop = img_trans[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
+    #cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
-    return img_lightbox_crop
+    return max_dim
 
-def get_color(img_lightbox_crop):
-    average_row_color = np.mean(img_lightbox_crop, axis=0) # Take average across one dimension of 2D image
+
+def get_color(dims, img_trans, img_full):
+    bw_lightbox = convert_to_binary_image(img_trans[dims[1]:dims[1] + dims[3], dims[0]:dims[0] + dims[2]], 2)
+    bw_lightbox = cv2.morphologyEx(bw_lightbox, cv2.MORPH_OPEN, kernel)
+    cv2.imshow('bw lightbox', bw_lightbox)
+    cv2.waitKey(0)
+    average_row_color = np.mean(img_full[dims[1]:dims[1] + dims[3], dims[0]:dims[0] + dims[2]], axis=0) # Take average across one dimension of 2D image
     average_color = np.mean(average_row_color, axis=0) # Take average along second dimension, returning final true color avg
     average_color = np.uint8(average_color) # Convert to whole RGB values
 
@@ -195,20 +200,19 @@ def get_box_color(img_full, gaze_data):
     # Transform into CIELab colorspace
     img_trans = cv2.cvtColor(img_crop, cv2.COLOR_BGR2LAB)
 
-    img_binary = convert_to_binary_image(img_trans)
+    img_binary = convert_to_binary_image(img_trans, 2)
 
-    kernel = np.ones((5,5),np.uint8)
     img_binary = cv2.morphologyEx(img_binary, cv2.MORPH_OPEN, kernel)
     cv2.imshow('binary', img_binary)
 
     try:
-        img_lightbox_crop = find_bounding_box_simple(img_binary, img_crop)
+        img_lightbox_dims = find_bounding_box_simple(img_binary, img_crop)
     except NoBoxError:
         print('no box found')
 #        cv2.waitKey(0)
         return None
 
-    main_color = get_color(img_lightbox_crop)
+    main_color = get_color(img_lightbox_dims, img_trans, img_full)
 
     time_taken = time.time() - start_time
     # print(time_taken)
