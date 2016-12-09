@@ -13,6 +13,7 @@ class NoBoxError(Exception):
         pass
 
 
+#TODO if the bounding box exceeds the fail
 def crop_image(img_full, gaze_data):
     height, width, channels = img_full.shape
     crop_to_x = .25  # Crop to a fourth of the image
@@ -77,6 +78,7 @@ def find_bounding_box(img_binary, img_crop):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     max_area = 0
+    max_dim = []
     max_rect = None
     switch_aspect_ratio = float(119)/75  # Aspect ratio of the lightswitch
     for cnt in contours:
@@ -133,35 +135,48 @@ def find_bounding_box(img_binary, img_crop):
     return img_lightbox_crop
     
 
-def find_bounding_box_simple(img_binary, img_crop):
+def euclidean_distance(gaze_data, img_width, img_height, x, y, w, h):
+    x_centroid = x + (w / 2.0)
+    y_centroid = y + (h / 2.0)
+    gaze_mapped_x = gaze_data[0] * img_width
+    gaze_mapped_y = (1 - gaze_data[1]) * img_height
+    distance = np.sqrt((x_centroid - gaze_mapped_x)**2 + (y_centroid - gaze_mapped_y)**2)
+    return distance
+
+
+def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_height, img_width, img_col = img_crop.shape
     max_area = 0
+    min_distance = 200 # Minimum distance threshold
     max_dim = []
     switch_aspect_ratio = float(119)/75 # Aspect ratio of the light switch
     img_width_bound_high = img_width * 0.99
     img_width_bound_low = img_width * 0.01
     img_height_bound_high = img_height * 0.99
     img_height_bound_low = img_height * 0.01
+    bounding_boxes = []
+    switch_aspect_ratio = float(119)/75 # Aspect ratio of the lightswitch
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
         # Only consider bounding boxes that match our a priori knowledge of light switch dimensions
         if (float(h)/w) < (switch_aspect_ratio * 1.68) and ((float(h)/w) > (switch_aspect_ratio * 0.77)):
-            if (h > img_height * 0.05) and (h < img_height * 0.30):
+            if (h > img_height * 0.07) and (h < img_height * 0.30):
                 if (x > img_width_bound_low) and (y > img_height_bound_low) \
-                        and (x+w < img_width_bound_high)  and (y+h < img_height_bound_high):
-                    cv2.rectangle(img_crop, (x, y), (x+w, y+h), (255, 0, 255), 2)
-                    # print('{0} {1} {2} {3}'.format(x, y, w, h))
-                    if w*h > max_area:
-                        max_area = w*h
+                    and (x+w < img_width_bound_high)  and (y+h < img_height_bound_high):
+#                    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+#                    print('{0} {1} {2} {3}'.format(x, y, w, h))
+                    distance = euclidean_distance(gaze_data, img_width, img_height, x, y, w, h)
+                    if distance < min_distance:
+                        min_distance = distance
                         max_dim = [x, y, w, h]
     if not max_dim:
         raise NoBoxError
 
     x, y, w, h = max_dim
-#    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
+    cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     cv2.imshow('box', img_crop)
     #img_lightbox_crop = img_trans[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
     #cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
@@ -192,7 +207,7 @@ def get_color(dims, img_trans, img_full):
 
 def get_box_color(img_full, gaze_data):
     start_time = time.time()
-    # img_full = cv2.imread(frame_file)
+    #img_full = cv2.imread(frame_file)
 
     # img_crop = crop_image(img_full, gaze_data)
     img_crop = img_full
@@ -206,7 +221,7 @@ def get_box_color(img_full, gaze_data):
     cv2.imshow('binary', img_binary)
 
     try:
-        img_lightbox_dims = find_bounding_box_simple(img_binary, img_crop)
+        img_lightbox_crop = find_bounding_box_simple(img_binary, img_crop, gaze_data)
     except NoBoxError:
         print('no box found')
 #        cv2.waitKey(0)
