@@ -57,7 +57,6 @@ def convert_to_binary_image(img_trans):
     # Define criteria, number of clusters(K) and apply kmeans()
     criteria = (cv2.TERM_CRITERIA_EPS, 10, 1.0)
     K = 2
-    ipdb.set_trace()
     ret,label,center=cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_PP_CENTERS)
 
     #Find larger label and color it black
