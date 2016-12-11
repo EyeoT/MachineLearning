@@ -181,7 +181,7 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     #cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
     # Check if the min_distance is reasonably close to box
-    if min_distance > max_dim[0] * 3:
+    if abs(img_width * gaze_data[0] - max_dim[0]) > (max_dim[2] * 2.0):
         raise NoBoxError
 
     return max_dim
@@ -204,12 +204,13 @@ def get_color(dims, img_trans, img_full):
     # cv2.imshow('average color swatch', average_color_swatch)  # color swatch just displaying the average color
     # cv2.imshow('color swatch', color_swatch)  # average color superimposed over the region of interest
 
+    # naive color determination
     color_classification = {0: 'blue', 1: 'green', 2: 'red', 3: 'cream'}  # BGR ordering due to OpenCV
     if abs(int(average_color[1]) - int(average_color[2])) < 10:  # if green and red are within 10 of each other, cream
         main_color = color_classification[3]
     else:
         main_color = color_classification[np.argmax(average_color, axis=0)] # Index of max BGR color determines color
-    print("Lightbox guess: {0}, BGR: {1} ".format(main_color, average_color))
+    print("Naive Lightbox guess: {0}, BGR: {1} ".format(main_color, average_color))
     return average_color, main_color
 
 
@@ -226,7 +227,7 @@ def get_box_color(img_full, gaze_data):
         img_lightbox_dims = find_bounding_box_simple(img_binary, img_full, gaze_data)
     except NoBoxError:
         print('no box found')
-        main_color = 'no box found'
+        main_color = 'None'
         average_color = [0, 0, 0]  # set to black, since None can cause trouble
         # cv2.waitKey(0)
         return average_color, main_color
