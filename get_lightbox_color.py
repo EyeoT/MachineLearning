@@ -181,7 +181,7 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     #cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
 
     # Check if the min_distance is reasonably close to box
-    if min_distance > x * 3:
+    if min_distance > max_dim[0] * 3:
         raise NoBoxError
 
     return max_dim
