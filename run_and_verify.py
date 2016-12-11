@@ -1,9 +1,9 @@
 import csv
 import os
-
 import cv2
 import numpy as np
-
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 import get_lightbox_color
 
 # TODO: 3D scatter color plot (Gen's matplotlib + Harrison?)
@@ -112,8 +112,21 @@ def train(train_frames):
             float(num_accurate) / iterator)))
     return measured_color, classification, correct, position
 
+def plot_3D(measured_color):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    for x, y, z in measured_color:
+        ax.scatter(x, y, z, c='r', marker='o')
+
+    ax.set_xlabel('R')
+    ax.set_ylabel('G')
+    ax.set_zlabel('B')
+
+    plt.show()
+
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
     measured_color, classification, correct, position = train(train_frames)
     write_data(measured_color, classification, correct, position)
+    plot_3D(measured_color)
