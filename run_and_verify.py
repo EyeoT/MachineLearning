@@ -108,9 +108,8 @@ def train(train_frames):
         print("True color: {0} for image {1}\n".format(frame['true_color'], frame['frame']))
         position.append(iterator % 10)  # positions repeated every 10 frames
         iterator += 1
-    print "Total number accurately classified: {0} of {1} or {2}%\n".format(num_accurate, iterator, "%0.2f" % (100 *
-                                                                                                               float(
-                                                                                                                   num_accurate) / iterator))
+    print("Total number accurately classified: {0} of {1} or {2}%\n".format(num_accurate, iterator, "%0.2f" % (100 *
+            float(num_accurate) / iterator)))
     return measured_color, classification, correct, position
 
 

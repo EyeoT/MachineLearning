@@ -6,7 +6,6 @@ import numpy as np
 kernel = np.ones((5, 5), np.uint8)  # constant
 
 
-# TODO: Define 'no box found' distances. (ratio of size of bounding box?) (Jenna?)
 # TODO: Implement test color thresholding (Gen?)
 
 class NoBoxError(Exception):
@@ -148,7 +147,8 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_height, img_width, img_col = img_crop.shape
-    min_distance = 200  # Minimum distance threshold #TODO: math.sqrt((img_height^2) + (img_width^2)) ?
+    # Minimum distance threshold
+    min_distance = np.sqrt(img_width ** 2 + img_height ** 2) * .15
     max_dim = []
     # ignore all bounding boxes found touching or very near the edge of the image frame
     img_width_bound_high = img_width * 0.99
@@ -179,6 +179,10 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     # cv2.imshow('full image', img_boxes)
     #img_lightbox_crop = img_trans[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
     #cv2.imshow('lightbox', img_lightbox_crop) # Plot what we are going to average the color of
+
+    # Check if the min_distance is reasonably close to box
+    if min_distance > x * 3:
+        raise NoBoxError
 
     return max_dim
 
