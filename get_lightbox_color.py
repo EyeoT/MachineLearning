@@ -3,16 +3,17 @@ import time
 import cv2
 import numpy as np
 
-#TODO: Add gaze crop
-#TODO: Choose bounding box not just by area but nearness to gaze
 kernel = np.ones((5, 5), np.uint8)  # constant
+
+
+# TODO: Define 'no box found' distances. (ratio of size of bounding box?) (Jenna?)
+# TODO: Implement test color thresholding (Gen?)
+
 class NoBoxError(Exception):
 
     def __init__(self):
         pass
 
-
-#TODO if the bounding box exceeds the fail
 def crop_image(img_full, gaze_data):
     height, width, channels = img_full.shape
     crop_to_x = .25  # Crop to a fourth of the image
@@ -147,19 +148,19 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     img_contour, contours, hierarcy = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_height, img_width, img_col = img_crop.shape
-    min_distance = 200 # Minimum distance threshold
+    min_distance = 200  # Minimum distance threshold #TODO: math.sqrt((img_height^2) + (img_width^2)) ?
     max_dim = []
+    # ignore all bounding boxes found touching or very near the edge of the image frame
     img_width_bound_high = img_width * 0.99
     img_width_bound_low = img_width * 0.01
     img_height_bound_high = img_height * 0.99
     img_height_bound_low = img_height * 0.01
-    bounding_boxes = []
     switch_aspect_ratio = float(119) / 75  # Aspect ratio of the light switch
     img_boxes = img_crop.copy()
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # Only consider bounding boxes that match our a priori knowledge of light switch dimensions (w/ parallax tol)
+        # Only consider bounding boxes that match our a posteriori knowledge of light switch dimensions (w/ parallax)
         if (float(h)/w) < (switch_aspect_ratio * 1.68) and ((float(h)/w) > (switch_aspect_ratio * 0.77)):
             if (h > img_height * 0.065) and (h < img_height * 0.35):
                 if (x > img_width_bound_low) and (y > img_height_bound_low) \
@@ -173,7 +174,7 @@ def find_bounding_box_simple(img_binary, img_crop, gaze_data):
     if not max_dim:
         raise NoBoxError
 
-    x, y, w, h = max_dim
+    # x, y, w, h = max_dim
     # cv2.rectangle(img_crop,(x,y),(x+w,y+h),(255, 0, 255),2)
     # cv2.imshow('full image', img_boxes)
     #img_lightbox_crop = img_trans[int(y):int(y+h), int(x):int(x+w)] # Crop down to just the lightswtich
@@ -195,12 +196,12 @@ def get_color(dims, img_trans, img_full):
                 color_swatch[height][width] = average_color
 
     average_color_swatch = np.array([[average_color] * 100] * 100, np.uint8)  # Make a color swatch
-    # cv2.imshow('bw lightbox', bw_lightbox)
-    # cv2.imshow('average color swatch', average_color_swatch)
-    # cv2.imshow('color swatch', color_swatch)
+    # cv2.imshow('bw lightbox', bw_lightbox)  # binary version of region of interest (faceplate + switch)
+    # cv2.imshow('average color swatch', average_color_swatch)  # color swatch just displaying the average color
+    # cv2.imshow('color swatch', color_swatch)  # average color superimposed over the region of interest
 
     color_classification = {0: 'blue', 1: 'green', 2: 'red', 3: 'cream'}  # BGR ordering due to OpenCV
-    if abs(average_color[1] - average_color[2]) < 10:
+    if abs(int(average_color[1]) - int(average_color[2])) < 10:  # if green and red are within 10 of each other, cream
         main_color = color_classification[3]
     else:
         main_color = color_classification[np.argmax(average_color, axis=0)] # Index of max BGR color determines color
@@ -222,8 +223,8 @@ def get_box_color(img_full, gaze_data):
     except NoBoxError:
         print('no box found')
         main_color = 'no box found'
-        average_color = [0, 0, 0]
-#        cv2.waitKey(0)
+        average_color = [0, 0, 0]  # set to black, since None can cause trouble
+        # cv2.waitKey(0)
         return average_color, main_color
 
     average_color, main_color = get_color(img_lightbox_dims, img_trans, img_full)
