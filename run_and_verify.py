@@ -120,21 +120,24 @@ def train(train_frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification):
+def plot_3D(measured_color, classification, correct):
     color_markers = { 
         'cream' : 'm',
         'blue' : 'b',
         'red' : 'r',
         'green' : 'g',
-        'no box found' : 'b'
+        'no box found' : 'b',
+        'None' : 'b'
         }
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     # ipdb.set_trace()
-    for bgr, case in zip(measured_color,classification):
+    for bgr, case, truth in zip(measured_color,classification, correct):
         x, y, z = bgr
-        color = color_marker[case]
-        ax.scatter(x, y, z, c=color, marker='o')
+        ipdb.set_trace()
+        face_color = color_markers[case]
+        edge_color = color_markers[truth]
+        ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
     ax.set_xlabel('R')
     ax.set_ylabel('G')
