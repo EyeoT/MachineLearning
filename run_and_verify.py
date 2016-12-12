@@ -3,7 +3,6 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
 
@@ -251,7 +250,7 @@ def color_classification(measured_color, true_color, test_frames):
     blue_mean = np.mean(blue_list, axis=0)
 
     # Fit a Gaussian mixture model with EM using five components for each color
-    gmm = mixture.GaussianMixture(n_components=5, covariance_type='diag', n_init=10).fit(measured_color)
+    gmm = mixture.GaussianMixture(n_components=5, covariance_type='spherical', n_init=1).fit(measured_color)
 
     # Map GMM clusters to their proper labels
     gmm_order = ['unknown', 'unknown', 'unknown', 'unknown', 'unknown']  # initialize empty ordering
@@ -303,8 +302,7 @@ def color_classification(measured_color, true_color, test_frames):
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
-    measured_color, classification, true_color, correct, position = train(train_frames)
-    '''disabled for testing GMM
-    write_data(measured_color, classification, true_color, correct, position)'''
+    measured_color, classification, true_color, correct, position = train_or_test(train_frames)
+    write_data(measured_color, classification, true_color, correct, position)
     gmm = color_classification(measured_color, true_color, test_frames)
     plot_3D(measured_color, classification, true_color, 'all', gmm)
