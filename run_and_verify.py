@@ -69,12 +69,52 @@ def separate_train_and_test():
     '''
 
     frame_sets = read_data()
-    test_frames = np.random.choice(frame_sets, int(len(frame_sets) * 0.1), replace=False)  # pick 10% w/o replacement
-    train_logic = (frame for frame in frame_sets if frame not in test_frames)
+    num_test_frames = int(len(frame_sets) * 0.2)
+    test_frames = []
     train_frames = []
+    remaining_frames = []
 
-    for frame in train_logic:
-        train_frames.append(frame)  # separate training data
+    if (num_test_frames >= 5):
+
+        p_cream = [0.166666667, 0.166666667, 0.166666667, 0.166666667, 0.166666667, 0.166666667, 0, 0, 0, 0, 0, 0, 0, 0,
+                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                   0, 0, 0,
+                   0, 0, 0, 0, 0, 0, 0, 0, 0]
+        n = float(1) / 31
+        p_none = [0, 0, 0, 0, 0, 0, n, n, n, n, n, 0, 0, 0, 0, n, n, n, 0, n, n, 0, 0, 0, 0, n, n, n, n, n, n, 0, 0, 0,
+                  0, n, n, n, n, 0, 0, 0, n, 0, 0, 0, 0, 0, 0, 0, n, n, n, n, n, n, n, n, n, n];
+
+        p_green = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.066666667, 0.066666667, 0.066666667, 0.066666667, 0, 0, 0,
+                   0.066666667, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.066666667, 0.066666667,
+                   0.066666667,
+                   0, 0.066666667, 0.066666667, 0.066666667, 0.066666667, 0.066666667, 0.066666667, 0.066666667, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 0]
+
+        p_blue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        p_red = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25,
+                 0.25, 0.25, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_cream))  # cream
+        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_none))  # no box found
+        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_green))  # green
+        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_blue))  # blue
+        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_red))  # red
+
+        for frame in frame_sets:
+            if frame not in test_frames:
+                remaining_frames.append(frame)
+
+        new_test_frames = np.random.choice(remaining_frames, num_test_frames - 5, replace=False)  # pick 20% w/o replace
+
+        for frame in new_test_frames:
+            test_frames.append(frame)
+
+        for frame in frame_sets:
+            if frame not in test_frames:
+                train_frames.append(frame)  # separate training data
 
     return test_frames, train_frames
 
