@@ -70,12 +70,12 @@ def separate_train_and_test():
     '''
 
     frame_sets = read_data()
-    num_test_frames = int(len(frame_sets) * 0.2)
+    num_train_frames = int(len(frame_sets) * 0.8)
     test_frames = []
     train_frames = []
     remaining_frames = []
 
-    if (num_test_frames >= 5):
+    if (num_train_frames >= 5):
 
         p_cream = [0.166666667, 0.166666667, 0.166666667, 0.166666667, 0.166666667, 0.166666667, 0, 0, 0, 0, 0, 0, 0, 0,
                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -98,31 +98,32 @@ def separate_train_and_test():
         p_red = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25,
                  0.25, 0.25, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_cream))  # cream
-        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_none))  # no box found
-        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_green))  # green
-        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_blue))  # blue
-        test_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_red))  # red
+        train_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_cream)[0])  # cream
+        train_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_none)[0])  # no box found
+        train_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_green)[0])  # green
+        train_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_blue)[0])  # blue
+        train_frames.append(np.random.choice(frame_sets, 1, replace=False, p=p_red)[0])  # red
 
         for frame in frame_sets:
-            if frame not in test_frames:
+            if frame not in train_frames:
                 remaining_frames.append(frame)
 
-        new_test_frames = np.random.choice(remaining_frames, num_test_frames - 5, replace=False)  # pick 20% w/o replace
+        # pick 80% w/o replace
+        new_train_frames = np.random.choice(remaining_frames, num_train_frames - 5, replace=False)
 
-        for frame in new_test_frames:
-            test_frames.append(frame)
+        for frame in new_train_frames:
+            train_frames.append(frame)
 
         for frame in frame_sets:
-            if frame not in test_frames:
-                train_frames.append(frame)  # separate training data
+            if frame not in train_frames:
+                test_frames.append(frame)  # separate training data
 
     return test_frames, train_frames
 
 
-def train(train_frames):
+def train_or_test(frames):
     '''
-    :param train_frames: The 90% of total frames used to train the algorithm
+    :param frames: Either the 80% of total frames used to train the algorithm, or the 20% used to test
     :return: Returns the BGR-ordered triplet representing the color of the faceplate, the string representing the color
     ('cream', 'blue', 'green', 'red', or 'no box found'), binary value 1 if the box was correctly fixated on and
     classified by color, and which of the 10 locations stood at when taking data, used to catch patterns.
@@ -136,7 +137,7 @@ def train(train_frames):
     num_accurate = 0  # running count of successful classifications
     iterator = 0  # running count of total frames
 
-    for frame in train_frames:
+    for frame in frames:
         img = cv2.imread(os.path.join(folder_path, frame['frame']))
         gaze_center_x = int(img.shape[1] * frame['gaze_data'][0])  # user's gaze x-coordinate
         gaze_center_y = int(img.shape[0] * (1 - frame['gaze_data'][1]))  # user's gaze y-coordinate
@@ -227,16 +228,59 @@ def color_classification(measured_color, true_color, test_frames):
     blue_mean = np.mean(blue_list, axis=0)
 
     # Fit a Gaussian mixture model with EM using five components for each color
-    gmm = mixture.GaussianMixture(n_components=5, covariance_type='full').fit(measured_color)
+    gmm = mixture.GaussianMixture(n_components=5, covariance_type='diag', n_init=10).fit(measured_color)
+
+    # Map GMM clusters to their proper labels
+    gmm_order = ['unknown', 'unknown', 'unknown', 'unknown', 'unknown']  # initialize empty ordering
+    check_in = False  # initialize to false
+    for i in range(0, 5):
+        gmm_mean = gmm.means_[0:5][i][0:3]
+        none_mean_diff = np.sum(abs(gmm_mean - none_mean[0:3]))
+        green_mean_diff = np.sum(abs(gmm_mean - green_mean[0:3]))
+        cream_mean_diff = np.sum(abs(gmm_mean - cream_mean[0:3]))
+        red_mean_diff = np.sum(abs(gmm_mean - red_mean[0:3]))
+        blue_mean_diff = np.sum(abs(gmm_mean - blue_mean[0:3]))
+
+        if none_mean_diff < 1:
+            gmm_order[i] = 'None'
+        elif green_mean_diff < 1:
+            gmm_order[i] = 'green'
+        elif cream_mean_diff < 1:
+            gmm_order[i] = 'cream'
+        elif red_mean_diff < 1:
+            gmm_order[i] = 'red'
+        elif blue_mean_diff < 1:
+            gmm_order[i] = 'blue'
+        else:
+            print("gmm_mean diff too great: {0}!", gmm_mean)
+            check_in = True
+
+    if check_in and ('green' not in gmm_order) and ('unknown' in gmm_order):
+        gmm_order[gmm_order.index('unknown')] = 'green'  # overwrite the value with green
+    else:
+        print("ERROR: Unable to map labels to GMM!")
 
     # TODO: Run get_lightbox_color on test_frames, put output into prediction function below:
-    # gmm.predict(test_measured_colors)
+    test_measured_colors, test_classification, test_true_color, test_correct, test_position = train_or_test(test_frames)
+    prediction = gmm.predict(test_measured_colors)
+    post_probs = gmm.predict_proba(test_measured_colors)
+    num_correct = 0
+    for i in range(0, len(prediction)):
+        if gmm_order[int(prediction[i])] == test_true_color[i]:
+            num_correct += 1
+        print("Predicted color: {0} | True color: {1} for image {2}\n".format(gmm_order[int(prediction[i])],
+                                                                              test_true_color[i],
+                                                                              test_frames[i]['frame']))
+    print(
+    "FINAL RESULT: {0} of {1} frames correctly classified! ({2}%)".format(num_correct, len(prediction), "%0.2f" % (100 *
+                                                                                                                   float(
+                                                                                                                       num_correct) / len(
+        prediction))))
     return gmm  # temporary
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
-    measured_color, classification, true_color, correct, position = train(train_frames)
-    '''disabled for testing GMM
+    measured_color, classification, true_color, correct, position = train_or_test(train_frames)
     write_data(measured_color, classification, true_color, correct, position)
-    plot_3D(measured_color, classification, true_color, 'all')'''
+    plot_3D(measured_color, classification, true_color, 'all')
     gmm = color_classification(measured_color, true_color, test_frames)
