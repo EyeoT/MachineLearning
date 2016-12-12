@@ -3,7 +3,6 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 import get_lightbox_color
@@ -158,7 +157,7 @@ def train(train_frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification, true_color, show_correct=False):
+def plot_3D(measured_color, classification, true_color, show_correct=True):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
@@ -166,24 +165,28 @@ def plot_3D(measured_color, classification, true_color, show_correct=False):
     :param show_correct: A boolean that toggles between showing the correctly and incorrectly classified points.
     :return: The matplotlib plot object
     '''
-    color_markers = { 
-        'cream' : 'm',
-        'blue' : 'b',
-        'red' : 'r',
-        'green' : 'g',
-        'no box found' : 'k',
-        'None' : 'k'
+    color_markers = {
+        'cream': 'm',
+        'blue': 'b',
+        'red': 'r',
+        'green': 'g',
+        'no box found': 'k',
+        'None': 'k'
         }
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    for bgr, case, truth in zip(measured_color,classification, true_color):
+    ax.set_xlim3d(0, 255)  # force axis to scale to [0, 255] RBG range
+    ax.set_ylim3d(0, 255)
+    ax.set_zlim3d(0, 255)
+    for bgr, case, truth in zip(measured_color, classification, true_color):
         x, y, z = bgr
         edge_color = color_markers[case]
         face_color = color_markers[truth]
-        if (edge_color != face_color) and (show_correct == False):
-            print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x,y,x, case, truth, face_color, edge_color)
+        if (edge_color != face_color) and not show_correct:
+            print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x, y, z, case, truth,
+                                                                                              face_color, edge_color)
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
-        elif show_correct == True:
+        elif show_correct:
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
     ax.set_xlabel('B')
