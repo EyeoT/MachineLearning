@@ -3,10 +3,10 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 import get_lightbox_color
-import ipdb
 
 # TODO: 3D scatter color plot (Gen's matplotlib + Harrison?)
 
@@ -120,30 +120,40 @@ def train(train_frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification, correct):
+def plot_3D(measured_color, classification, true_color, show_correct):
+    '''
+    :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
+    :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
+    :param true_color: The string representing the intended color for the frame
+    :param show_correct: A boolean that toggles between showing the correctly and incorrectly classified points.
+    :return: The matplotlib plot object
+    '''
     color_markers = { 
         'cream' : 'm',
         'blue' : 'b',
         'red' : 'r',
         'green' : 'g',
-        'no box found' : 'b',
-        'None' : 'b'
+        'no box found' : 'k',
+        'None' : 'k'
         }
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    # ipdb.set_trace()
-    for bgr, case, truth in zip(measured_color,classification, correct):
+    for bgr, case, truth in zip(measured_color,classification, true_color):
         x, y, z = bgr
-        ipdb.set_trace()
-        face_color = color_markers[case]
-        edge_color = color_markers[truth]
-        ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+        edge_color = color_markers[case]
+        face_color = color_markers[truth]
+        if (edge_color != face_color) and (show_correct == False):
+            print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x,y,x, case, truth, face_color, edge_color)
+            ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+        elif show_correct == True:
+            ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
-    ax.set_xlabel('R')
+    ax.set_xlabel('B')
     ax.set_ylabel('G')
-    ax.set_zlabel('B')
+    ax.set_zlabel('R')
 
     plt.show()
+    return fig
 
 
 if __name__ == '__main__':
