@@ -3,6 +3,7 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
 
@@ -159,7 +160,26 @@ def train_or_test(frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification, true_color, show_correct):
+def plot_ellipsoid_3d(mean, covariance, ax):
+    """Plot 3-d Ellipsoid based on mean and covariance on the Axes3D ax."""
+
+    # points on unit sphere
+    u = np.linspace(0.0, 2.0 * np.pi, 100)
+    v = np.linspace(0.0, np.pi, 100)
+    z = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    x = np.outer(np.ones_like(u), np.cos(v))
+
+    # transform points to ellipsoid
+    for i in range(len(x)):
+        for j in range(len(x)):
+            x[i,j], y[i,j], z[i,j] = mean + np.dot(covariance,
+                                                      [x[i,j],y[i,j],z[i,j]])
+
+    ax.plot_wireframe(x, y, z,  rstride=4, cstride=4, color='#2980b9', alpha=0.2)
+
+
+def plot_3D(measured_color, classification, true_color, show_correct, gmm):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
@@ -193,6 +213,9 @@ def plot_3D(measured_color, classification, true_color, show_correct):
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
         elif show_correct == 'all':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+
+    for i in range(gmm.n_components):
+        plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
 
     ax.set_xlabel('B')
     ax.set_ylabel('G')
@@ -280,7 +303,8 @@ def color_classification(measured_color, true_color, test_frames):
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
-    measured_color, classification, true_color, correct, position = train_or_test(train_frames)
-    write_data(measured_color, classification, true_color, correct, position)
-    plot_3D(measured_color, classification, true_color, 'all')
+    measured_color, classification, true_color, correct, position = train(train_frames)
+    '''disabled for testing GMM
+    write_data(measured_color, classification, true_color, correct, position)'''
     gmm = color_classification(measured_color, true_color, test_frames)
+    plot_3D(measured_color, classification, true_color, 'all', gmm)
