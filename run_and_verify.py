@@ -98,8 +98,6 @@ def train(train_frames):
 
     for frame in train_frames:
         img = cv2.imread(os.path.join(folder_path, frame['frame']))
-        # if img is None:
-           #  ipdb.set_trace()
         gaze_center_x = int(img.shape[1] * frame['gaze_data'][0])  # user's gaze x-coordinate
         gaze_center_y = int(img.shape[0] * (1 - frame['gaze_data'][1]))  # user's gaze y-coordinate
         cv2.circle(img, (gaze_center_x, gaze_center_y), 2, (255, 0, 255), -1)  # plots the gaze point for debugging
@@ -120,7 +118,7 @@ def train(train_frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification, true_color, show_correct):
+def plot_3D(measured_color, classification, true_color, show_correct=False):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
