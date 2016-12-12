@@ -3,7 +3,6 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 import get_lightbox_color
@@ -158,12 +157,13 @@ def train(train_frames):
     return measured_color, classification, true_color, correct, position
 
 
-def plot_3D(measured_color, classification, true_color, show_correct=True):
+def plot_3D(measured_color, classification, true_color, show_correct):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
     :param true_color: The string representing the intended color for the frame
-    :param show_correct: A boolean that toggles between showing the correctly and incorrectly classified points.
+    :param show_correct: A string ('incorrect', 'correct', 'all') that toggles between showing all, the correctly, or
+    incorrectly classified points.
     :return: The matplotlib plot object
     '''
     color_markers = {
@@ -183,11 +183,13 @@ def plot_3D(measured_color, classification, true_color, show_correct=True):
         x, y, z = bgr
         edge_color = color_markers[case]
         face_color = color_markers[truth]
-        if (edge_color != face_color) and not show_correct:
+        if (edge_color != face_color) and show_correct == 'incorrect':
             print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x, y, z, case, truth,
                                                                                               face_color, edge_color)
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
-        elif show_correct:
+        elif (edge_color == face_color) and show_correct == 'correct':
+            ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+        elif show_correct == 'all':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
     ax.set_xlabel('B')
@@ -202,4 +204,4 @@ if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
     measured_color, classification, true_color, correct, position = train(train_frames)
     write_data(measured_color, classification, true_color, correct, position)
-    plot_3D(measured_color, classification, true_color)
+    plot_3D(measured_color, classification, true_color, 'all')
