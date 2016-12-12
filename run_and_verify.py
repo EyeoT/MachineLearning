@@ -202,10 +202,12 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
     ax.set_xlim3d(0, 255)  # force axis to scale to [0, 255] RBG range
     ax.set_ylim3d(0, 255)
     ax.set_zlim3d(0, 255)
+    scatters = {}
     for bgr, case, truth in zip(measured_color, classification, true_color):
         x, y, z = bgr
         edge_color = color_markers[case]
         face_color = color_markers[truth]
+        scatter_key = '{0}{1}'.format(edge_color, face_color)
         if (edge_color != face_color) and show_correct == 'incorrect':
             print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x, y, z, case, truth,
                                                                                               face_color, edge_color)
@@ -213,7 +215,16 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         elif (edge_color == face_color) and show_correct == 'correct':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
         elif show_correct == 'all':
-            ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+            # ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
+            if scatter_key not in scatters:
+                scatters[scatter_key] = {'x': [], 'y': [], 'z': [], 'face': face_color, 'edge': edge_color}
+            scatters[scatter_key]['x'].append(x)
+            scatters[scatter_key]['y'].append(y)
+            scatters[scatter_key]['z'].append(z)
+    plts = []
+    for key in scatters:
+        plts.append(ax.scatter(scatters[key]['x'], scatters[key]['y'], scatters[key]['z'], 
+                facecolors=scatters[key]['face'], edgecolors=scatters[key]['edge'], marker='o'))
 
     for i in range(gmm.n_components):
         plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
@@ -221,6 +232,8 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
     ax.set_xlabel('B')
     ax.set_ylabel('G')
     ax.set_zlabel('R')
+    plt.title('Clustered Color Data')
+    plt.legend(plts, scatters.keys)
 
     plt.show()
     return fig
