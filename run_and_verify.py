@@ -4,6 +4,7 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn import mixture
 
 import get_lightbox_color
 
@@ -200,8 +201,42 @@ def plot_3D(measured_color, classification, true_color, show_correct):
     return fig
 
 
+def color_classification(measured_color, true_color, test_frames):
+    none_list = []
+    green_list = []
+    cream_list = []
+    red_list = []
+    blue_list = []
+
+    for color in range(0, len(measured_color)):  # separate color BGR values
+        if true_color[color] == 'None':
+            none_list.append(measured_color[color])
+        elif true_color[color] == 'green':
+            green_list.append(measured_color[color])
+        elif true_color[color] == 'cream':
+            cream_list.append(measured_color[color])
+        elif true_color[color] == 'red':
+            red_list.append(measured_color[color])
+        elif true_color[color] == 'blue':
+            blue_list.append(measured_color[color])
+
+    none_mean = np.mean(none_list, axis=0)
+    green_mean = np.mean(green_list, axis=0)
+    cream_mean = np.mean(cream_list, axis=0)
+    red_mean = np.mean(red_list, axis=0)
+    blue_mean = np.mean(blue_list, axis=0)
+
+    # Fit a Gaussian mixture model with EM using five components for each color
+    gmm = mixture.GaussianMixture(n_components=5, covariance_type='full').fit(measured_color)
+
+    # TODO: Run get_lightbox_color on test_frames, put output into prediction function below:
+    # gmm.predict(test_measured_colors)
+    return gmm  # temporary
+
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
     measured_color, classification, true_color, correct, position = train(train_frames)
+    '''disabled for testing GMM
     write_data(measured_color, classification, true_color, correct, position)
-    plot_3D(measured_color, classification, true_color, 'all')
+    plot_3D(measured_color, classification, true_color, 'all')'''
+    gmm = color_classification(measured_color, true_color, test_frames)
