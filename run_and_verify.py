@@ -8,7 +8,6 @@ import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
-import ipdb
 
 import get_lightbox_color
 
