@@ -1,8 +1,10 @@
 import csv
 import os
+import time
 
 import cv2
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
 
@@ -282,10 +284,18 @@ def color_classification(measured_color, true_color, test_frames):
     else:
         print("ERROR: Unable to map labels to GMM!")
 
-    # TODO: Run get_lightbox_color on test_frames, put output into prediction function below:
+    return gmm, gmm_order  # temporary
+
+
+def test(test_frames, gmm, gmm_order):
+    start_time = time.time()
     test_measured_colors, test_classification, test_true_color, test_correct, test_position = train_or_test(test_frames)
     prediction = gmm.predict(test_measured_colors)
     post_probs = gmm.predict_proba(test_measured_colors)
+    time_taken = time.time() - start_time
+    num_frames = len(test_frames)
+    print('Time Taken for {0} Test Frames: {1}'.format(num_frames, time_taken))
+    print('Average Time per Frame: {0}'.format(time_taken/num_frames))
     num_correct = 0
     for i in range(0, len(prediction)):
         if gmm_order[int(prediction[i])] == test_true_color[i]:
@@ -294,15 +304,14 @@ def color_classification(measured_color, true_color, test_frames):
                                                                               test_true_color[i],
                                                                               test_frames[i]['frame']))
     print(
-    "FINAL RESULT: {0} of {1} frames correctly classified! ({2}%)".format(num_correct, len(prediction), "%0.2f" % (100 *
-                                                                                                                   float(
-                                                                                                                       num_correct) / len(
-        prediction))))
-    return gmm  # temporary
+    "FINAL RESULT: {0} of {1} frames correctly classified! ({2}%)".format(num_correct, len(prediction), "%0.2f" %
+        (100 * float(num_correct) / len(prediction))))
+
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
     measured_color, classification, true_color, correct, position = train_or_test(train_frames)
     write_data(measured_color, classification, true_color, correct, position)
-    gmm = color_classification(measured_color, true_color, test_frames)
+    gmm, gmm_order = color_classification(measured_color, true_color, test_frames)
+    test(test_frames, gmm, gmm_order)
     plot_3D(measured_color, classification, true_color, 'all', gmm)
