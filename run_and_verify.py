@@ -181,7 +181,7 @@ def plot_ellipsoid_3d(mean, covariance, ax):
     ax.plot_wireframe(x, y, z,  rstride=4, cstride=4, color='#2980b9', alpha=0.2)
 
 
-def plot_3D(measured_color, classification, true_color, show_correct, gmm):
+def plot_3D(measured_color, classification, true_color, show_correct, gmm=None):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
@@ -218,8 +218,9 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         elif show_correct == 'all':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
-    for i in range(gmm.n_components):
-        plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
+    if gmm is not None:
+        for i in range(gmm.n_components):
+            plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
 
     recs = []
     color_markers.pop('None', None)
@@ -229,7 +230,10 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
     ax.set_xlabel('B')
     ax.set_ylabel('G')
     ax.set_zlabel('R')
+    # TODO: get accuracy in the title
     plt.title('Clustered Color Data')
+
+    # TODO: try to position the legend better
     plt.legend(recs, color_markers.keys(), frameon=True, loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
@@ -324,4 +328,8 @@ if __name__ == '__main__':
     write_data(measured_color, classification, true_color, correct, position)
     gmm, gmm_order = color_classification(measured_color, true_color, test_frames)
     test(test_frames, gmm, gmm_order)
+    measured_color, classification, true_color, correct, position = train(train_frames)
+    plot_3D(measured_color, classification, true_color, 'all')
+    '''disabled for testing GMM
+    write_data(measured_color, classification, true_color, correct, position)'''
     plot_3D(measured_color, classification, true_color, 'all', gmm)
