@@ -4,6 +4,7 @@ import time
 
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
@@ -197,7 +198,7 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         'no box found': 'k',
         'None': 'k'
         }
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8,6), dpi=80)
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlim3d(0, 255)  # force axis to scale to [0, 255] RBG range
     ax.set_ylim3d(0, 255)
@@ -215,25 +216,21 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         elif (edge_color == face_color) and show_correct == 'correct':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
         elif show_correct == 'all':
-            # ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
-            if scatter_key not in scatters:
-                scatters[scatter_key] = {'x': [], 'y': [], 'z': [], 'face': face_color, 'edge': edge_color}
-            scatters[scatter_key]['x'].append(x)
-            scatters[scatter_key]['y'].append(y)
-            scatters[scatter_key]['z'].append(z)
-    plts = []
-    for key in scatters:
-        plts.append(ax.scatter(scatters[key]['x'], scatters[key]['y'], scatters[key]['z'], 
-                facecolors=scatters[key]['face'], edgecolors=scatters[key]['edge'], marker='o'))
+            ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
     for i in range(gmm.n_components):
         plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
+
+    recs = []
+    color_markers.pop('None', None)
+    for color in color_markers.values():
+          recs.append(mpatches.Rectangle((0,0),1,1,fc=color))
 
     ax.set_xlabel('B')
     ax.set_ylabel('G')
     ax.set_zlabel('R')
     plt.title('Clustered Color Data')
-    plt.legend(plts, scatters.keys)
+    plt.legend(recs, color_markers.keys(), frameon=True, loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
     return fig
