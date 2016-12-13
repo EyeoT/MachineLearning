@@ -230,7 +230,7 @@ def plot_3D(measured_color, classification, true_color, show_correct, accuracy, 
     ax.set_ylabel('G')
     ax.set_zlabel('R')
     if gmm is None:
-        plt.title("Naive Classification, Accuracy: {0}%".format(accuracy))
+        plt.title("Naive Classification, Accuracy: {0}%".format("%0.2f" % accuracy))
     else:
         plt.title("Gaussian Mixture Model Classification, Accuracy: {0}%".format("%0.2f" % accuracy))
 
@@ -321,7 +321,7 @@ def test(test_frames, gmm, gmm_order):
     print(
     "FINAL RESULT: {0} of {1} frames correctly classified! ({2}%)".format(num_correct, len(prediction), "%0.2f" %
         (accuracy)))
-    return accuracy
+    return initial_accuracy
 
 
 if __name__ == '__main__':
