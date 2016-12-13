@@ -329,8 +329,8 @@ if __name__ == '__main__':
     measured_color, classification, true_color, correct, position, accuracy = train_or_test(train_frames)
     write_data(measured_color, classification, true_color, correct, position)
     plot_3D(measured_color, classification, true_color, 'all', accuracy)
-    gmm, gmm_order = color_classification(measured_color, true_color, test_frames)
-    gmm_accuracy = test(test_frames, gmm, gmm_order)
+    gmm, gmm_order = color_classification(measured_color, true_color, train_frames)
+    gmm_accuracy = test(train_frames, gmm, gmm_order)
     #measured_color, classification, true_color, correct, position = train(train_frames)
     '''disabled for testing GMM
     write_data(measured_color, classification, true_color, correct, position)'''
