@@ -4,6 +4,7 @@ import time
 
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sklearn import mixture
@@ -156,9 +157,10 @@ def train_or_test(frames):
         position.append(iterator % 10)  # positions repeated every 10 frames
         true_color.append(frame['true_color'])
         iterator += 1
-    print("Total number accurately classified: {0} of {1} or {2}%\n".format(num_accurate, iterator, "%0.2f" % (100 *
-            float(num_accurate) / iterator)))
-    return measured_color, classification, true_color, correct, position
+
+    accuracy = 100 * float(num_accurate) / iterator
+    print("Total number accurately classified: {0} of {1} or {2}%\n".format(num_accurate, iterator, "%0.2f" % accuracy))
+    return measured_color, classification, true_color, correct, position, accuracy
 
 
 def plot_ellipsoid_3d(mean, covariance, ax):
@@ -180,7 +182,7 @@ def plot_ellipsoid_3d(mean, covariance, ax):
     ax.plot_wireframe(x, y, z,  rstride=4, cstride=4, color='#2980b9', alpha=0.2)
 
 
-def plot_3D(measured_color, classification, true_color, show_correct, gmm):
+def plot_3D(measured_color, classification, true_color, show_correct, accuracy, gmm=None):
     '''
     :param measured_color: The BGR-ordered triplet representing the color of the faceplate. [0, 0, 0] if None
     :param classification: The string representing the color guess ('cream', 'blue', 'green', 'red', or 'no box found')
@@ -197,7 +199,7 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         'no box found': 'k',
         'None': 'k'
         }
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8,8), dpi=80)
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlim3d(0, 255)  # force axis to scale to [0, 255] RBG range
     ax.set_ylim3d(0, 255)
@@ -215,12 +217,24 @@ def plot_3D(measured_color, classification, true_color, show_correct, gmm):
         elif show_correct == 'all':
             ax.scatter(x, y, z, facecolors=face_color, edgecolors=edge_color, marker='o')
 
-    for i in range(gmm.n_components):
-        plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
+    if gmm is not None:
+        for i in range(gmm.n_components):
+            plot_ellipsoid_3d(gmm.means_[i], gmm.covariances_[i], ax)
+
+    recs = []
+    color_markers.pop('None', None)
+    for color in color_markers.values():
+          recs.append(mpatches.Rectangle((0,0),1,1,fc=color))
 
     ax.set_xlabel('B')
     ax.set_ylabel('G')
     ax.set_zlabel('R')
+    if gmm is None:
+        plt.title("Naive Classification, Accuracy: {0}%".format("%0.2f" % accuracy))
+    else:
+        plt.title("Gaussian Mixture Model Classification, Accuracy: {0}%".format("%0.2f" % accuracy))
+
+    plt.legend(recs, color_markers.keys(), frameon=True, loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
     return fig
@@ -289,7 +303,7 @@ def color_classification(measured_color, true_color, test_frames):
 
 def test(test_frames, gmm, gmm_order):
     start_time = time.time()
-    test_measured_colors, test_classification, test_true_color, test_correct, test_position = train_or_test(test_frames)
+    test_measured_colors, test_classification, test_true_color, test_correct, test_position, initial_accuracy= train_or_test(test_frames)
     prediction = gmm.predict(test_measured_colors)
     post_probs = gmm.predict_proba(test_measured_colors)
     time_taken = time.time() - start_time
@@ -303,15 +317,21 @@ def test(test_frames, gmm, gmm_order):
         print("Predicted color: {0} | True color: {1} for image {2}\n".format(gmm_order[int(prediction[i])],
                                                                               test_true_color[i],
                                                                               test_frames[i]['frame']))
+    accuracy = 100 * float(num_correct) / len(prediction)
     print(
     "FINAL RESULT: {0} of {1} frames correctly classified! ({2}%)".format(num_correct, len(prediction), "%0.2f" %
-        (100 * float(num_correct) / len(prediction))))
+        (accuracy)))
+    return initial_accuracy
 
 
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
-    measured_color, classification, true_color, correct, position = train_or_test(train_frames)
+    measured_color, classification, true_color, correct, position, accuracy = train_or_test(train_frames)
     write_data(measured_color, classification, true_color, correct, position)
-    gmm, gmm_order = color_classification(measured_color, true_color, test_frames)
-    test(test_frames, gmm, gmm_order)
-    plot_3D(measured_color, classification, true_color, 'all', gmm)
+    plot_3D(measured_color, classification, true_color, 'all', accuracy)
+    gmm, gmm_order = color_classification(measured_color, true_color, train_frames)
+    gmm_accuracy = test(train_frames, gmm, gmm_order)
+    #measured_color, classification, true_color, correct, position = train(train_frames)
+    '''disabled for testing GMM
+    write_data(measured_color, classification, true_color, correct, position)'''
+    plot_3D(measured_color, classification, true_color, 'all', gmm_accuracy, gmm)
