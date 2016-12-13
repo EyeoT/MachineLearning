@@ -200,17 +200,15 @@ def plot_3D(measured_color, classification, true_color, show_correct, accuracy, 
         'no box found': 'k',
         'None': 'k'
         }
-    fig = plt.figure(figsize=(8,6), dpi=80)
+    fig = plt.figure(figsize=(8,8), dpi=80)
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlim3d(0, 255)  # force axis to scale to [0, 255] RBG range
     ax.set_ylim3d(0, 255)
     ax.set_zlim3d(0, 255)
-    scatters = {}
     for bgr, case, truth in zip(measured_color, classification, true_color):
         x, y, z = bgr
         edge_color = color_markers[case]
         face_color = color_markers[truth]
-        scatter_key = '{0}{1}'.format(edge_color, face_color)
         if (edge_color != face_color) and show_correct == 'incorrect':
             print "({0}, {1}, {2}) case: {3} truth:{4} face_color: {5} edge_color:{6}".format(x, y, z, case, truth,
                                                                                               face_color, edge_color)
@@ -237,8 +235,6 @@ def plot_3D(measured_color, classification, true_color, show_correct, accuracy, 
     else:
         plt.title("Gaussian Mixture Model Classification, Accuracy: {0}%".format("%0.2f" % accuracy))
 
-
-    # TODO: try to position the legend better
     plt.legend(recs, color_markers.keys(), frameon=True, loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.show()
@@ -332,8 +328,8 @@ def test(test_frames, gmm, gmm_order):
 if __name__ == '__main__':
     test_frames, train_frames = separate_train_and_test()
     measured_color, classification, true_color, correct, position, accuracy = train_or_test(train_frames)
-    #write_data(measured_color, classification, true_color, correct, position)
-    #plot_3D(measured_color, classification, true_color, 'all', accuracy)
+    write_data(measured_color, classification, true_color, correct, position)
+    plot_3D(measured_color, classification, true_color, 'all', accuracy)
     gmm, gmm_order = color_classification(measured_color, true_color, test_frames)
     gmm_accuracy = test(test_frames, gmm, gmm_order)
     #measured_color, classification, true_color, correct, position = train(train_frames)
